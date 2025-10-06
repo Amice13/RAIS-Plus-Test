@@ -60,7 +60,7 @@ function parseCSV(str, delimiter = '\t') {
 
 const parser = async (string, delimiter) => {
   let rows = parseCSV(string)
-  if (rows.length < 2) return { headers: [], data: [] }
+  // if (rows.length < 2) return { headers: [], data: [] }
   return rows
 }
 
