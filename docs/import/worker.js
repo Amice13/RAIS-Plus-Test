@@ -5,61 +5,70 @@ importScripts('/import/comlink.js')
  * Credits to Trevor Dixon https://stackoverflow.com/questions/1293147/how-to-parse-csv-data
  */
 
-function parseCSV(str, delimiter = '\t') {
-  const arr = []
-  let quote = false  // 'true' means we're inside a quoted field
-  // Iterate over each character, keep track of current row and column (of the returned array)
-  for (let row = 0, col = 0, c = 0; c < str.length; c++) {
-    let cc = str[c], nc = str[c+1]        // Current character, next character
-    arr[row] = arr[row] || []             // Create a new row if necessary
-    arr[row][col] = arr[row][col] || ''   // Create a new column (start with empty string) if necessary
-    // If the current character is a quotation mark, and we're inside a
-    // quoted field, and the next character is also a quotation mark,
-    // add a quotation mark to the current column and skip the next character
-    if (cc === '"' && quote && nc === '"') {
-      arr[row][col] += cc
-      ++c
+function parseCSV (str, delimiter = '\t') {
+  const rows = []
+  let row = []
+  let field = ''
+
+  let quote = false
+  let fieldStart = true
+
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i]
+    const n = str[i + 1]
+
+    if (c === '"' && quote && n === '"') {
+      field += '"'
+      i++
+      fieldStart = false
       continue
     }
-    // If it's just one quotation mark, begin/end quoted field
-    if (cc === '"') {
-      quote = !quote
+
+    if (c === '"' && fieldStart) {
+      quote = true
+      fieldStart = false
       continue
     }
-    // If it's a comma and we're not in a quoted field, move on to the next column
-    if (cc === delimiter && !quote) {
-      ++col
+
+    if (c === '"' && quote) {
+      quote = false
       continue
     }
-    // If it's a newline (CRLF) and we're not in a quoted field, skip the next character
-    // and move on to the next row and move to column 0 of that new row
-    if (cc === '\r' && nc === '\n' && !quote) {
-      ++row
-      col = 0
-      ++c
+
+    if (!quote && c === delimiter) {
+      row.push(field)
+      field = ''
+      fieldStart = true
       continue
     }
-    // If it's a newline (LF or CR) and we're not in a quoted field,
-    // move on to the next row and move to column 0 of that new row
-    if (cc === '\n' && !quote) {
-      ++row
-      col = 0
+
+    if (!quote && (c === '\n' || c === '\r')) {
+      row.push(field)
+      field = ''
+      fieldStart = true
+
+      rows.push(row)
+      row = []
+
+      if (c === '\r' && n === '\n') i++
       continue
     }
-    if (cc === '\r' && !quote) {
-      ++row
-      col = 0
-      continue
-    }
-    // Otherwise, append the current character to the current column
-    arr[row][col] += cc
+
+    field += c
+    fieldStart = false
   }
-  return arr
+
+  row.push(field)
+
+  if (row.length > 1 || row[0] !== '') {
+    rows.push(row)
+  }
+
+  return rows
 }
 
-
 const parser = async (string, delimiter) => {
-  let rows = parseCSV(string)
+  let rows = parseCSV(string, delimiter)
   // if (rows.length < 2) return { headers: [], data: [] }
   return rows
 }
